@@ -1,0 +1,11 @@
+version: '3'
+services:
+  web:
+    build: .
+    container_name: twitter-test
+    ports:
+     - "5000:5000"
+    volumes:
+      - .:/var/www/html
+    ports:
+      - 8050:80

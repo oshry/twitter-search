@@ -1,0 +1,13 @@
+{
+    "name": "root/html",
+    "description": "Twitter Test",
+    "require": {
+        "abraham/twitteroauth": "^0.7.3"
+    },
+    "authors": [
+        {
+            "name": "Oshry Levy",
+            "email": "oshrylevy@gmail.com"
+        }
+    ]
+}
