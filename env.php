@@ -5,8 +5,8 @@ ini_set ('log_errors', 'on');
 ini_set ('display_startup_errors', 'on');
 ini_set ('error_reporting', E_ALL);
 
-define('CONSUMER_KEY', 'BcCWhX4lKRzhWkBVDxt4V9Co2');
-define('CONSUMER_SECRET', 'l00Ajd8RgPlU4dR88OSWn9d0Tz3smwZNNdqmxq8m9zS4Knbmhk');
+define('CONSUMER_KEY', '[ADD YOURS]');
+define('CONSUMER_SECRET', '[ADD YOURS]');
 
 // -- Locale setup ---------------------------------------------
 
