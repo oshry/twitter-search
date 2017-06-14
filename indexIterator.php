@@ -11,12 +11,21 @@ class TwitterSearcher extends AbstractPagedIterator
     protected $key = CONSUMER_KEY;
     protected $secret = CONSUMER_SECRET;
     protected $connection;
+    protected $cursor = TRUE;
+    protected $max_id = '-1';
+    public $tweets;
 
     public function __construct($searchTerm)
     {
-        $this->connection = new TwitterOAuth($this->key, $this->secret);
-        $this->searchTerm = $searchTerm;
-        $this->getPage(0);
+        if($searchTerm != '') {
+            $this->connection = new TwitterOAuth($this->key, $this->secret);
+            $this->searchTerm = $searchTerm;
+            do {
+                $this->getPage(0);
+            }while($this->cursor);
+        } else {
+            return -1;
+        }
     }
 
     public function getTotalSize()
@@ -44,14 +53,26 @@ class TwitterSearcher extends AbstractPagedIterator
 
     public function getPage($pageNumber)
     {
+        $this->tweets = $this->connection->get("search/tweets", ["q" => $this->searchTerm, "count" => $this->getPageSize(), 'max_id' => $this->max_id]);
         $nextPage = (isset($this->tweets->next_results) ? $this->tweets->next_results : '-1');
-        if ($nextPage != '-1') {
-            $max_id = $this->parseUrlParams($nextPage); // pagination
-        } else {
-            $max_id = $nextPage;
+        if( isset($this->tweets->statuses)){
+            $this->totalSize = count($this->tweets->statuses);
+            if($this->totalSize == 100){
+                $this->cursor = TRUE;
+                if ($nextPage != '-1') {
+                    $this->max_id = $this->parseUrlParams($nextPage); // pagination
+                } else {
+                    $this->max_id = $nextPage;
+                }
+                echo $this->max_id."<br>";
+            }else{
+                $this->cursor = FALSE;              // break do-while
+                $this->max_id = '-1';          // reset
+            }
+        }else{
+            $this->cursor = false;
         }
-        $this->tweets = $this->connection->get("search/tweets", ["q" => $this->searchTerm, "count" => $this->getPageSize(), 'max_id' => $max_id]);
-        $this->totalSize = count($this->tweets->statuses);
+
         return $this->tweets->statuses;
     }
 }
