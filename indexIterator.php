@@ -10,12 +10,12 @@ class TwitterSearcher extends AbstractPagedIterator
     protected $searchTerm;
     protected $key = CONSUMER_KEY;
     protected $secret = CONSUMER_SECRET;
+    protected $connection;
 
     public function __construct($searchTerm)
     {
-        $this->connection = new TwitterOAuth( $this->key, $this->secret);
+        $this->connection = new TwitterOAuth($this->key, $this->secret);
         $this->searchTerm = $searchTerm;
-        // This will make sure totalSize is set before we try and access the data.
         $this->getPage(0);
     }
 
@@ -28,30 +28,29 @@ class TwitterSearcher extends AbstractPagedIterator
     {
         return 1000;
     }
+
     function parseUrlParams($url)
     {
         $params = array();
         $parts = parse_url($url);
-        parse_str($parts['query'],$params);
+        parse_str($parts['query'], $params);
 
-        if(isset($params['max_id']))
-        {
+        if (isset($params['max_id'])) {
             return $params['max_id'];
-        }
-        else
-        {
+        } else {
             return '-1';
         }
     }
+
     public function getPage($pageNumber)
     {
         $nextPage = (isset($this->tweets->next_results) ? $this->tweets->next_results : '-1');
-        if( $nextPage != '-1' ) {
+        if ($nextPage != '-1') {
             $max_id = $this->parseUrlParams($nextPage); // pagination
         } else {
             $max_id = $nextPage;
         }
-        $this->tweets = $this->connection->get("search/tweets", ["q" => $this->searchTerm, "count" => 100, 'max_id' => $max_id ]);
+        $this->tweets = $this->connection->get("search/tweets", ["q" => $this->searchTerm, "count" => $this->getPageSize(), 'max_id' => $max_id]);
         $this->totalSize = count($this->tweets->statuses);
         return $this->tweets->statuses;
     }
