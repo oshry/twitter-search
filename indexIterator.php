@@ -8,24 +8,29 @@ class TwitterSearcher extends AbstractPagedIterator
 {
     protected $totalSize = 0;
     protected $searchTerm;
-    protected $key = CONSUMER_KEY;
-    protected $secret = CONSUMER_SECRET;
     protected $connection;
     protected $cursor = TRUE;
-    protected $max_id = '-1';
-    public $tweets;
+    protected $max_id = '0';
+    public $tweets = [];
 
-    public function __construct($searchTerm)
+    public function __construct($con, $searchTerm)
     {
-        if($searchTerm != '') {
-            $this->connection = new TwitterOAuth($this->key, $this->secret);
+        if ($searchTerm != '') {
+            $this->connection = $con;
             $this->searchTerm = $searchTerm;
             do {
-                $this->getPage(0);
-            }while($this->cursor);
+                $list = $this->getPage($this->max_id);
+                foreach ($list as $tweet){
+                    $this->tweets[] = $tweet->text;
+                }
+                //for short test
+                if(count($this->tweets) > 200)
+                    $this->cursor = false;
+            } while ($this->cursor);
         } else {
             return -1;
         }
+        return $this->tweets;
     }
 
     public function getTotalSize()
@@ -35,7 +40,7 @@ class TwitterSearcher extends AbstractPagedIterator
 
     public function getPageSize()
     {
-        return 1000;
+        return 100;
     }
 
     function parseUrlParams($url)
@@ -53,42 +58,72 @@ class TwitterSearcher extends AbstractPagedIterator
 
     public function getPage($pageNumber)
     {
-        $this->tweets = $this->connection->get("search/tweets", ["q" => $this->searchTerm, "count" => $this->getPageSize(), 'max_id' => $this->max_id]);
-        $nextPage = (isset($this->tweets->next_results) ? $this->tweets->next_results : '-1');
-        if( isset($this->tweets->statuses)){
-            $this->totalSize = count($this->tweets->statuses);
-            if($this->totalSize == 100){
-                $this->cursor = TRUE;
-                if ($nextPage != '-1') {
-                    $this->max_id = $this->parseUrlParams($nextPage); // pagination
+        $response = $this->connection->get("search/tweets", ["q" => $this->searchTerm, "count" => $this->getPageSize(), 'max_id' => $this->max_id]);
+        if (isset($response->errors[0]['code']) == 88) {
+            $this->cursor = TRUE;
+            sleep(305);
+        } else {
+            $nextPage = (isset($response->search_metadata->next_results) ? $response->search_metadata->next_results : '-1');
+            if (isset($response->statuses)) {
+                $sum = count($response->statuses);
+                if ($sum == 100) {
+                    $this->cursor = TRUE;
+                    if ($nextPage != '-1') {
+                        $this->max_id = $this->parseUrlParams($nextPage); // pagination
+                    } else {
+                        $this->max_id = $nextPage;
+                    }
                 } else {
-                    $this->max_id = $nextPage;
+                    $this->cursor = FALSE;              // break do-while
+                    $this->max_id = '-1';          // reset
                 }
-                echo $this->max_id."<br>";
-            }else{
-                $this->cursor = FALSE;              // break do-while
-                $this->max_id = '-1';          // reset
+            } else {
+                $this->cursor = false;
             }
-        }else{
-            $this->cursor = false;
         }
 
-        return $this->tweets->statuses;
+        return $response->statuses;
     }
 }
+$con = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET);
+$tweets2 = new TwitterSearcher($con, 'bear');
+echo 'please 300 count = 300 count='.count($tweets2->tweets);
+foreach ( $tweets2->tweets as $t)
+    echo '<pre>',print_r($t),'</pre>';die('ssss');
 
-$tweets = new TwitterSearcher('bear');
-echo "Found " . count($tweets) . " results:\n";
-foreach ($tweets as $tweet) {
-    var_dump($tweet);
-}
-
-
-
+die();
 
 
 
 
+
+
+
+//class WebTechnologies implements IteratorAggregate
+//{
+//
+//    private $tech;
+//
+//    // constructor
+//    public function __construct() {
+//        $this->tech = explode( ',', 'PHP,HTML,XHTML,CSS,JavaScript,XML,XSLT,ASP,C#,Ruby,Python' );
+//    }
+//
+//    // return iterator
+//    public function getIterator() {
+//        return new ArrayIterator( $this->tech );
+//    }
+//
+//}
+//
+//// create object
+//$wt = new WebTechnologies();
+//
+//// iterate over collection
+//foreach ($wt as $n => $t) {
+//    echo "<p>Technology $n: $t</p>";
+//}
+//die('pooooooooo');
 
 
 
