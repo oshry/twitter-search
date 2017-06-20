@@ -11,6 +11,7 @@ class TwitterSearcher extends AbstractPagedIterator
     protected $connection;
     protected $cursor = TRUE;
     protected $max_id = '0';
+    public $total_tweets = 0;
     public $tweets = [];
 
     public function __construct($con, $searchTerm)
@@ -21,6 +22,7 @@ class TwitterSearcher extends AbstractPagedIterator
             do {
                 foreach ($this->getPage($this->max_id)->current() as $tweet){
                         echo $tweet->text."<br>";
+                        $this->total_tweets++;
                 }
             } while ($this->cursor);
         } else {
@@ -54,34 +56,39 @@ class TwitterSearcher extends AbstractPagedIterator
 
     public function getPage($pageNumber)
     {
-        $response = $this->connection->get("search/tweets", ["q" => $this->searchTerm, "count" => $this->getPageSize(), 'max_id' => $this->max_id]);
-        if (isset($response->errors[0]['code']) == 88) {
-            $this->cursor = TRUE;
-            sleep(305);
-        } else {
-            $nextPage = (isset($response->search_metadata->next_results) ? $response->search_metadata->next_results : '-1');
-            if (isset($response->statuses)) {
-                $sum = count($response->statuses);
-                if ($sum == 100) {
-                    $this->cursor = TRUE;
-                    if ($nextPage != '-1') {
-                        $this->max_id = $this->parseUrlParams($nextPage); // pagination
+        try {
+            $response = $this->connection->get("search/tweets", ["q" => $this->searchTerm, "count" => $this->getPageSize(), 'max_id' => $this->max_id]);
+            if (isset($response->errors[0]['code']) == 88) {
+                $this->cursor = TRUE;
+                sleep(305);
+                $response->throw(new Exception('error '.$response->errors[0]['code']));
+            } else {
+                $nextPage = (isset($response->search_metadata->next_results) ? $response->search_metadata->next_results : '-1');
+                if (isset($response->statuses)) {
+                    $sum = count($response->statuses);
+                    if ($sum == 100) {
+                        $this->cursor = TRUE;
+                        if ($nextPage != '-1') {
+                            $this->max_id = $this->parseUrlParams($nextPage); // pagination
+                        } else {
+                            $this->max_id = $nextPage;
+                        }
                     } else {
-                        $this->max_id = $nextPage;
+                        $this->cursor = FALSE;              // break do-while
+                        $this->max_id = '-1';          // reset
                     }
                 } else {
-                    $this->cursor = FALSE;              // break do-while
-                    $this->max_id = '-1';          // reset
+                    $this->cursor = false;
                 }
-            } else {
-                $this->cursor = false;
             }
-        }
 
-        yield $response->statuses;
+            yield $response->statuses;
+        }catch(Exception $e){
+            echo 'Caught exception: ',  $e->getMessage(), "\n";
+        }
     }
 }
 $con = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET);
 $tweets2 = new TwitterSearcher($con, 'bear');
-echo 'please 300 count = 300 count='.count($tweets2->tweets);
+echo 'please 300 count = 300 count='.$tweets2->total_tweets;
 die();
