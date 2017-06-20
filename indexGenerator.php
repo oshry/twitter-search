@@ -19,14 +19,9 @@ class TwitterSearcher extends AbstractPagedIterator
             $this->connection = $con;
             $this->searchTerm = $searchTerm;
             do {
-                foreach ($this->getPage($this->max_id) as $tweet){
-                    foreach ($tweet as $single) {
-                        echo $single->text."<br>";
-                    }
+                foreach ($this->getPage($this->max_id)->current() as $tweet){
+                        echo $tweet->text."<br>";
                 }
-                //for short test
-                if(count($this->tweets) > 2000)
-                    $this->cursor = false;
             } while ($this->cursor);
         } else {
             return -1;
