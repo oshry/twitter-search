@@ -24,7 +24,7 @@ class TwitterSearcher extends AbstractPagedIterator
                         echo $tweet->text."<br>";
                         $this->total_tweets++;
                 }
-            } while ($this->cursor);
+            } while ($this->cursor && $this->getPage($this->max_id)->valid());
         } else {
             return -1;
         }
@@ -58,10 +58,10 @@ class TwitterSearcher extends AbstractPagedIterator
     {
         try {
             $response = $this->connection->get("search/tweets", ["q" => $this->searchTerm, "count" => $this->getPageSize(), 'max_id' => $this->max_id]);
-            if (isset($response->errors[0]['code']) == 88) {
+            if (isset($response->errors[0]->code) == 88) {
                 $this->cursor = TRUE;
                 sleep(305);
-                $response->throw(new Exception('error '.$response->errors[0]['code']));
+                throw(new Exception('error '.$response->errors[0]->code));
             } else {
                 $nextPage = (isset($response->search_metadata->next_results) ? $response->search_metadata->next_results : '-1');
                 if (isset($response->statuses)) {
@@ -76,6 +76,7 @@ class TwitterSearcher extends AbstractPagedIterator
                     } else {
                         $this->cursor = FALSE;              // break do-while
                         $this->max_id = '-1';          // reset
+                        throw(new Exception('Less then 100. last page only '.$sum));
                     }
                 } else {
                     $this->cursor = false;
@@ -90,5 +91,5 @@ class TwitterSearcher extends AbstractPagedIterator
 }
 $con = new TwitterOAuth(CONSUMER_KEY, CONSUMER_SECRET);
 $tweets2 = new TwitterSearcher($con, 'bear');
-echo 'please 300 count = 300 count='.$tweets2->total_tweets;
+echo 'Total Tweets: '.$tweets2->total_tweets;
 die();
