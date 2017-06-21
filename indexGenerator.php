@@ -20,11 +20,11 @@ class TwitterSearcher extends AbstractPagedIterator
             $this->connection = $con;
             $this->searchTerm = $searchTerm;
             do {
-                foreach ($this->getPage($this->max_id)->current() as $tweet){
-                        echo $tweet->text."<br>";
+                    foreach ($this->getPage($this->max_id)->current() as $tweet) {
+                        echo $tweet->text . "<br>";
                         $this->total_tweets++;
-                }
-            } while ($this->cursor && $this->getPage($this->max_id)->valid());
+                    }
+            } while ($this->cursor && $this->getPage($this->max_id)->valid() && is_array($this->getPage($this->max_id)->current()));
         } else {
             return -1;
         }
@@ -59,7 +59,7 @@ class TwitterSearcher extends AbstractPagedIterator
         try {
             $response = $this->connection->get("search/tweets", ["q" => $this->searchTerm, "count" => $this->getPageSize(), 'max_id' => $this->max_id]);
             if (isset($response->errors[0]->code) == 88) {
-                $this->cursor = TRUE;
+                $this->cursor = true;
                 sleep(305);
                 throw(new Exception('error '.$response->errors[0]->code));
             } else {
@@ -67,14 +67,14 @@ class TwitterSearcher extends AbstractPagedIterator
                 if (isset($response->statuses)) {
                     $sum = count($response->statuses);
                     if ($sum == 100) {
-                        $this->cursor = TRUE;
+                        $this->cursor = true;
                         if ($nextPage != '-1') {
                             $this->max_id = $this->parseUrlParams($nextPage); // pagination
                         } else {
                             $this->max_id = $nextPage;
                         }
                     } else {
-                        $this->cursor = FALSE;              // break do-while
+                        $this->cursor = false;              // break do-while
                         $this->max_id = '-1';          // reset
                         throw(new Exception('Less then 100. last page only '.$sum));
                     }
